@@ -1,14 +1,10 @@
 from typing import Optional
-from datetime import datetime, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-import hashlib
-from fastapi import HTTPException
 
 from app.db.models import ShortUrl
 from app.db.repository import ShortUrlRepository
 from app.cache.redis import CacheManagerProtocol, RedisCacheManager
-from app.core.config import settings, Settings
+from app.core.config import Settings
 from app.services.generators import ShortCodeGenerator, HashBasedGenerator
 from app.services.url_validator import URLValidator
 from app.services.stats_queue import StatsQueue

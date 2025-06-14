@@ -1,17 +1,9 @@
-import os
-from typing import Optional
-
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.cache.redis import CacheManager
-from app.core.di import get_db, get_shorten_service, get_settings
-from app.core.schemas import ErrorResponse
+from app.core.di import get_shorten_service, get_settings
 from app.schemas.url import URLCreate, URLResponse
 from app.services.shortener import ShortenService
-from app.services.stats_queue import ClickEvent, StatsQueue
 from app.core.config import Settings
 
 router = APIRouter()
