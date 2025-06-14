@@ -1,23 +1,36 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean
+from sqlalchemy import Boolean, Column, DateTime, Integer, String
 from sqlalchemy.sql import func
 from .session import Base
+from datetime import datetime
 
 class ShortUrl(Base):
+    """Represents a shortened URL entry in the database."""
+
     __tablename__ = "short_urls"
 
-    id = Column(Integer, primary_key=True, index=True)
-    original_url = Column(String, nullable=False)
-    short_code = Column(String, unique=True, index=True, nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    expires_at = Column(DateTime(timezone=True), nullable=False)
-    is_active = Column(Boolean, default=True)
-    click_count = Column(Integer, default=0)
+    id = Column(Integer, primary_key=True, index=True, doc="Unique identifier for the short URL")
+    original_url = Column(String, nullable=False, doc="The original, long URL")
+    short_code = Column(String, unique=True, index=True, nullable=False, doc="The generated short code")
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), doc="Timestamp of creation")
+    expires_at = Column(DateTime(timezone=True), nullable=False, doc="Timestamp when the short URL expires")
+    is_active = Column(Boolean, default=True, doc="Indicates if the short URL is active")
+    click_count = Column(Integer, default=0, doc="Number of times the short URL has been clicked")
 
 class ClickStats(Base):
+    """Represents click statistics for a short URL."""
+
     __tablename__ = "click_stats"
 
-    id = Column(Integer, primary_key=True, index=True)
-    short_code = Column(String, index=True, nullable=False)
-    clicked_at = Column(DateTime(timezone=True), server_default=func.now())
-    ip_address = Column(String)
-    user_agent = Column(String)
+    id = Column(Integer, primary_key=True, index=True, doc="Unique identifier for the click event")
+    short_code = Column(String, index=True, nullable=False, doc="The short code that was clicked")
+    clicked_at = Column(DateTime(timezone=True), server_default=func.now(), doc="Timestamp of the click")
+    ip_address = Column(String, doc="IP address of the client who clicked")
+    user_agent = Column(String, doc="User-agent string of the client who clicked")
+
+class URL(Base):
+    """URL model for storing short URLs."""
+    __tablename__ = "urls"
+
+    short_code = Column(String(8), primary_key=True, index=True)
+    original_url = Column(String(2048), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)

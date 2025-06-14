@@ -1,74 +1,115 @@
-import os
 import json
-from fastapi import FastAPI, HTTPException, Depends, Request, Form
-from fastapi.responses import RedirectResponse, HTMLResponse
+import os
+from typing import Optional
+from contextlib import asynccontextmanager
+
+from dotenv import load_dotenv
+from fastapi import Depends, FastAPI, HTTPException, Request, status
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy.orm import Session
-from dotenv import load_dotenv
+from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.core.di import get_db, get_redis, get_settings, get_shorten_service
+from app.core.schemas import ErrorResponse
+from app.services.stats_queue import StatsQueue
+from app.services.shortener import ShortenService
+from app.schemas.url import URLCreate, URLResponse
+from app.api.shortener import router as shortener_router
+from app.db.session import Base, engine
+import logging
+from app.core.config import settings
 
-from .db.session import get_db, engine
-from .db import models
-from .services.validator import validate_url
-from .services.shortener import create_short_url
-from .cache.redis import get_url_mapping, increment_click_count, get_click_stats
 
 load_dotenv()
 
-# 創建資料庫表
-models.Base.metadata.create_all(bind=engine)
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Slink - URL Shortener")
-
-# 設置靜態文件和模板
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-templates = Jinja2Templates(directory="app/templates")
-
-@app.get("/", response_class=HTMLResponse)
-async def index(request: Request):
-    """首頁"""
-    return templates.TemplateResponse("index.html", {"request": request})
-
-@app.post("/shorten")
-async def shorten_url(url: str = Form(...), db: Session = Depends(get_db)):
-    """創建短網址"""
-    # 驗證 URL
-    is_safe, error_message = validate_url(url)
-    if not is_safe:
-        raise HTTPException(status_code=400, detail=error_message)
-
-    # 創建短網址
-    short_url = create_short_url(db, url)
-    base_url = os.getenv("BASE_URL", "http://localhost:8000")
-    return {
-        "short_url": f"{base_url}/{short_url.short_code}",
-        "expires_at": short_url.expires_at
-    }
-
-@app.get("/{short_code}")
-async def redirect_to_url(short_code: str, request: Request, db: Session = Depends(get_db)):
-    """重定向到原始網址"""
-    # 先從 Redis 查詢
-    url_data = get_url_mapping(short_code)
-    if not url_data:
-        raise HTTPException(status_code=404, detail="Short URL not found")
-
-    # 增加點擊次數
-    increment_click_count(short_code)
-
-    # 重定向到原始網址
-    return RedirectResponse(url=url_data["original_url"])
-
-@app.get("/stats/{short_code}", response_class=HTMLResponse)
-async def get_stats(short_code: str, request: Request, db: Session = Depends(get_db)):
-    """獲取短網址統計信息"""
-    stats = get_click_stats(short_code)
-    return templates.TemplateResponse(
-        "stats.html",
-        {
-            "request": request,
-            "short_code": short_code,
-            "stats": json.dumps(stats)
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    """Handle HTTP exceptions and return standardized error responses."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "detail": exc.detail,
+            "status_code": exc.status_code
         }
     )
+
+# Global stats queue instance
+stats_queue = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global stats_queue
+    # Startup
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    redis = await get_redis().__anext__()
+    stats_queue = StatsQueue(redis=redis, settings=settings)
+    await stats_queue.initialize()
+    yield
+    # Shutdown
+    if stats_queue:
+        await stats_queue.shutdown()
+
+# Create FastAPI app
+app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+# Templates
+templates = Jinja2Templates(directory="app/templates")
+
+# Include routers
+app.include_router(shortener_router, prefix="/api")
+
+# Register exception handlers
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+
+@app.get("/")
+async def index(request: Request):
+    """Render the index page."""
+    return templates.TemplateResponse("app.html", {"request": request})
+
+@app.get("/{short_code}")
+async def redirect_to_url(
+    short_code: str,
+    shortener: ShortenService = Depends(get_shorten_service)
+):
+    """Redirect to the original URL."""
+    try:
+        original_url = await shortener.resolve_short_url(short_code)
+        if not original_url:
+            raise HTTPException(status_code=404, detail="URL not found")
+        return RedirectResponse(original_url)
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        logger.error(f"Error redirecting to URL: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="Error redirecting to URL"
+        )
+
+@app.get("/stats/{short_code}")
+async def get_url_stats(
+    short_code: str,
+    request: Request,
+    shorten_service = Depends(get_shorten_service)
+):
+    """Render the stats page for a short URL."""
+    try:
+        await shorten_service.get_url_stats(short_code)  # Verify the URL exists
+        return templates.TemplateResponse(
+            "stats.html",
+            {
+                "request": request,
+                "short_code": short_code
+            }
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
