@@ -33,11 +33,11 @@
 - PostgreSQL
 - Redis
 
-![](.images/index.png)
+![](images/slink_index.png)
 
-![](.images/index_get_shortURL.png)
+![](images/slink_index_get_shortURL.png)
 
-![](.images/index_qry_URL_status.png)
+![](images/slink_index_qry_URL_status.png)
 
-![](.images/status_show_URL_status.png)
+![](images/slink_status_show_URL_status.png)
 
