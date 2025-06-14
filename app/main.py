@@ -1,12 +1,12 @@
+import os
+import json
 from fastapi import FastAPI, HTTPException, Depends, Request, Form
 from fastapi.responses import RedirectResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
-from datetime import datetime
-import os
 from dotenv import load_dotenv
-import json
+
 
 from .db.session import get_db, engine
 from .db import models

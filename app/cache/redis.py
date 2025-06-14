@@ -1,7 +1,7 @@
 import redis
 import os
-from dotenv import load_dotenv
 import json
+from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
 load_dotenv()
