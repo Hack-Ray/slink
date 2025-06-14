@@ -1,19 +1,11 @@
-import threading
-import time
 import asyncio
-from queue import Queue
-from datetime import datetime, timedelta
-from typing import Callable, List, Optional
 import json
 import logging
 import backoff
 from redis.asyncio import Redis
+from datetime import datetime, timedelta
 from app.core.config import Settings
 
-from sqlalchemy.orm import Session
-
-from app.db.models import ShortUrl
-from app.db.repository import ShortUrlRepository
 
 logger = logging.getLogger(__name__)
 

@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.core.di import get_redis
 from app.services.stats_queue import StatsQueue
-from app.api.url_router import router as shortener_router
+from app.api.url_router import router
 from app.db.session import Base, engine
 from app.core.config import settings
 
@@ -56,7 +56,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
 # Include routers
-app.include_router(shortener_router, prefix="/api")
+app.include_router(router, prefix="/api")
 
 # Register exception handlers
 app.add_exception_handler(StarletteHTTPException, http_exception_handler)

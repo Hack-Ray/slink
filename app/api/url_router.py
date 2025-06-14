@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
-
 from app.core.di import get_shorten_service, get_settings
 from app.schemas.url import URLCreate, URLResponse
 from app.services.shortener import ShortenService
@@ -53,7 +52,7 @@ async def redirect_to_url(
     """Redirect to the original URL for the given short code."""
     try:
         result = await shorten_service.resolve_short_url(short_code)
-        return RedirectResponse(url=result.original_url)
+        return RedirectResponse(url=result)
     except ValueError as e:
         raise HTTPException(
             status_code=404,

@@ -1,5 +1,4 @@
 from typing import AsyncGenerator, Optional
-import json
 from redis.asyncio import Redis, ConnectionPool
 from app.core.config import settings
 
