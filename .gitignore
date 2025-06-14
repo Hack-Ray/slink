@@ -1,0 +1,18 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+env/
+venv/
+
+# VSCode / PyCharm 等 IDE 設定
+.vscode/
+
+# 系統檔
+.DS_Store
+
+# Secret
+.env
