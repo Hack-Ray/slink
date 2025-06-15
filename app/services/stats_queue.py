@@ -6,7 +6,6 @@ from redis.asyncio import Redis
 from datetime import datetime, timedelta
 from app.core.config import Settings
 
-
 logger = logging.getLogger(__name__)
 
 class ClickEvent:
