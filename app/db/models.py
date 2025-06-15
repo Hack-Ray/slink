@@ -15,22 +15,3 @@ class ShortUrl(Base):
     expires_at = Column(DateTime(timezone=True), nullable=False, doc="Timestamp when the short URL expires")
     is_active = Column(Boolean, default=True, doc="Indicates if the short URL is active")
     click_count = Column(Integer, default=0, doc="Number of times the short URL has been clicked")
-
-class ClickStats(Base):
-    """Represents click statistics for a short URL."""
-
-    __tablename__ = "click_stats"
-
-    id = Column(Integer, primary_key=True, index=True, doc="Unique identifier for the click event")
-    short_code = Column(String, index=True, nullable=False, doc="The short code that was clicked")
-    clicked_at = Column(DateTime(timezone=True), server_default=func.now(), doc="Timestamp of the click")
-    ip_address = Column(String, doc="IP address of the client who clicked")
-    user_agent = Column(String, doc="User-agent string of the client who clicked")
-
-class URL(Base):
-    """URL model for storing short URLs."""
-    __tablename__ = "urls"
-
-    short_code = Column(String(8), primary_key=True, index=True)
-    original_url = Column(String(2048), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
