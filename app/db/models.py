@@ -1,7 +1,6 @@
 from sqlalchemy import Boolean, Column, DateTime, Integer, String
 from sqlalchemy.sql import func
 from .session import Base
-from datetime import datetime
 
 class ShortUrl(Base):
     """Represents a shortened URL entry in the database."""
