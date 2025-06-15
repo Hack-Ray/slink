@@ -3,8 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import ShortUrl
 from app.db.repository import ShortUrlRepository
-from app.cache.redis import CacheManagerProtocol, RedisCacheManager
-from app.core.config import Settings
+from app.cache.redis import CacheManagerProtocol
+from app.core.config import Settings as default_settings, settings
 from app.services.generators import ShortCodeGenerator, HashBasedGenerator
 from app.services.url_validator import URLValidator
 from app.services.stats_queue import StatsQueue
@@ -20,14 +20,14 @@ class ShortenService:
         cache_manager: Optional[CacheManagerProtocol] = None,
         repository: Optional[ShortUrlRepository] = None,
         stats_queue: Optional[StatsQueue] = None,
-        settings: Optional[Settings] = None
+        settings: Optional[settings] = None
     ):
         self.db_session = db_session
         self.repository = repository or ShortUrlRepository(db_session)
         self.generator = generator or HashBasedGenerator()
-        self.cache_manager = cache_manager or RedisCacheManager
+        self.cache_manager = cache_manager
         self.stats_queue = stats_queue
-        self.settings = settings or settings
+        self.settings = settings or default_settings() 
 
     async def create_short_url(self, original_url: str) -> ShortUrl:
         """Creates a new short URL or returns an existing active one."""

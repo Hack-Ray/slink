@@ -11,6 +11,7 @@ from app.services.generators import HashBasedGenerator, ShortCodeGenerator
 from app.services.shortener import ShortenService
 from app.services.stats_queue import StatsQueue
 from app.core.config import settings, Settings
+from app.controllers.url import URLController
 
 
 async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
@@ -64,4 +65,12 @@ def get_db_session_factory() -> Callable[[], AsyncSession]:
 
 async def get_settings() -> Settings:
     """Get application settings."""
-    return settings 
+    return settings
+
+
+async def get_url_controller(
+    shorten_service: ShortenService = Depends(get_shorten_service),
+    settings: Settings = Depends(get_settings)
+) -> URLController:
+    """Dependency that provides a URLController instance."""
+    return URLController(shorten_service=shorten_service, settings=settings) 

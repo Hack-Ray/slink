@@ -1,14 +1,11 @@
 services:
   app:
+    env_file: .env
     build: .
+    volumes:
+      - .:/app
     ports:
       - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/slink
-      - TEST_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/slink_test
-      - REDIS_URL=redis://redis:6379/0
-      - SECRET_KEY=65ebd606f5335bb503fa8e63297412c5d8d77b2dba562aea9cba74b8bf2dc082
-      - BASE_URL=http://localhost:8000
     depends_on:
       postgres:
         condition: service_healthy
@@ -42,4 +39,4 @@ services:
 
 volumes:
   postgres_data:
-  redis_data: 
+  redis_data:

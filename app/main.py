@@ -1,50 +1,19 @@
 import logging
-from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from starlette.exceptions import HTTPException as StarletteHTTPException
-from app.core.di import get_redis
-from app.services.stats_queue import StatsQueue
-from app.api.url_router import router
-from app.db.session import Base, engine
 from app.core.config import settings
-
-
+from app.view.home import router as web_router
+from app.router.api.url_router import router as api_router
+from app.cache.lifespan import lifespan
+from app.cache.error_handlers import register_error_handlers
+from app.router.redirect_router import router as redirect_router
+# Load environment variables
 load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-    """Handle HTTP exceptions and return standardized error responses."""
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={
-            "detail": exc.detail,
-            "status_code": exc.status_code
-        }
-    )
-
-# Global stats queue instance
-stats_queue = None
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global stats_queue
-    # Startup
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    redis = await get_redis().__anext__()
-    stats_queue = StatsQueue(redis=redis, settings=settings)
-    await stats_queue.initialize()
-    yield
-    # Shutdown
-    if stats_queue:
-        await stats_queue.shutdown()
 
 # Create FastAPI app
 app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)
@@ -52,17 +21,11 @@ app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)
 # Mount static files
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-# Templates
-templates = Jinja2Templates(directory="app/templates")
-
 # Include routers
-app.include_router(router, prefix="/api")
+app.include_router(web_router)
+app.include_router(api_router, prefix="/api")
+app.include_router(redirect_router)
 
-# Register exception handlers
-app.add_exception_handler(StarletteHTTPException, http_exception_handler)
-
-@app.get("/")
-async def index(request: Request):
-    """Render the index page."""
-    return templates.TemplateResponse("app.html", {"request": request})
+# Register error handlers
+register_error_handlers(app)
 
