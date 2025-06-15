@@ -13,7 +13,7 @@ async def test_create_short_url_success(async_client: AsyncClient):
 @pytest.mark.asyncio
 async def test_create_short_url_invalid(async_client: AsyncClient):
     resp = await async_client.post("/api/shorten", json={"original_url": "not_a_url"})
-    assert resp.status_code == 422 or resp.status_code == 400
+    assert resp.status_code in [422, 400]
 
 @pytest.mark.asyncio
 async def test_resolve_short_url_success(async_client: AsyncClient):
