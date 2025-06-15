@@ -2,7 +2,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock
 from app.services.shortener import ShortenService
 from app.db.models import ShortUrl
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 
 @pytest.mark.asyncio
 async def test_create_short_url_new(monkeypatch):
@@ -15,8 +15,8 @@ async def test_create_short_url_new(monkeypatch):
     repository.create = AsyncMock(return_value=ShortUrl(
         original_url="https://test.com",
         short_code="abc123",
-        created_at=datetime.now(),
-        expires_at=datetime.now() + timedelta(days=30),
+        created_at=datetime.now(UTC),
+        expires_at=datetime.now(UTC) + timedelta(days=30),
         is_active=True,
         click_count=0
     ))
@@ -41,8 +41,8 @@ async def test_create_short_url_existing(monkeypatch):
     existing = ShortUrl(
         original_url="https://test.com",
         short_code="abc123",
-        created_at=datetime.now(),
-        expires_at=datetime.now() + timedelta(days=30),
+        created_at=datetime.now(UTC),
+        expires_at=datetime.now(UTC) + timedelta(days=30),
         is_active=True,
         click_count=0
     )
@@ -85,8 +85,8 @@ async def test_resolve_short_url_db_hit():
     repository.get_by_short_code = AsyncMock(return_value=ShortUrl(
         original_url="https://test.com",
         short_code="abc123",
-        created_at=datetime.now(),
-        expires_at=datetime.now() + timedelta(days=30),
+        created_at=datetime.now(UTC),
+        expires_at=datetime.now(UTC) + timedelta(days=30),
         is_active=True,
         click_count=0
     ))
@@ -130,8 +130,8 @@ async def test_get_url_stats_success():
     repository.get_by_short_code = AsyncMock(return_value=ShortUrl(
         original_url="https://test.com",
         short_code="abc123",
-        created_at=datetime.now(),
-        expires_at=datetime.now() + timedelta(days=30),
+        created_at=datetime.now(UTC),
+        expires_at=datetime.now(UTC) + timedelta(days=30),
         is_active=True,
         click_count=0
     ))

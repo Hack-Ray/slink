@@ -5,8 +5,8 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.view.home import router as web_router
 from app.router.api.url_router import router as api_router
-from app.cache.lifespan import lifespan
-from app.cache.error_handlers import register_error_handlers
+from app.core.lifespan import lifespan
+from app.core.error_handlers import register_error_handlers
 from app.router.redirect_router import router as redirect_router
 # Load environment variables
 load_dotenv()

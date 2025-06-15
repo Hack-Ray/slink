@@ -2,8 +2,8 @@ import asyncio
 import json
 import logging
 import backoff
-from redis.asyncio import Redis
-from datetime import datetime, timedelta
+from redis.asyncio import Redis 
+from datetime import datetime, timedelta, UTC
 from app.core.config import Settings
 
 logger = logging.getLogger(__name__)
@@ -13,7 +13,7 @@ class ClickEvent:
 
     def __init__(self, short_code: str):
         self.short_code = short_code
-        self.timestamp = datetime.now()
+        self.timestamp = datetime.now(UTC)
 
 
 class StatsQueue:
@@ -30,10 +30,12 @@ class StatsQueue:
         self.queue_name = queue_name
         self._processing_task = None
         self._stop_event = asyncio.Event()
+        self._cleanup_task = None
 
     async def initialize(self) -> None:
         """Initialize the stats queue and start the processing task."""
         self._processing_task = asyncio.create_task(self._process_visits_loop())
+        self._cleanup_task = asyncio.create_task(self._daily_cleanup_loop())
         logger.info("Stats queue initialized and processing task started")
 
     async def shutdown(self) -> None:
@@ -54,6 +56,16 @@ class StatsQueue:
                 logger.error(f"Error in visit processing loop: {str(e)}")
                 await asyncio.sleep(5)  # Wait longer on error
 
+    async def _daily_cleanup_loop(self) -> None:
+        """Background task to cleanup old statistics data daily."""
+        while not self._stop_event.is_set():
+            try:
+                await self._cleanup_all_old_stats()
+                await asyncio.sleep(86400)  # Wait 24 hours
+            except Exception as e:
+                logger.error(f"Error in daily cleanup loop: {str(e)}")
+                await asyncio.sleep(3600)  # Wait 1 minute on error
+
     @backoff.on_exception(
         backoff.expo,
         Exception,
@@ -65,7 +77,7 @@ class StatsQueue:
         try:
             visit_data = {
                 "short_code": short_code,
-                "timestamp": datetime.utcnow().isoformat()
+                "timestamp": datetime.now(UTC).isoformat()
             }
             await self.redis.lpush(self.queue_name, json.dumps(visit_data))
             logger.info(f"Queued visit for short_code: {short_code}")
@@ -121,8 +133,7 @@ class StatsQueue:
                     f"url:stats:{short_code}:daily",
                     date_key,
                     1
-                )
-
+                )                  
                 # Execute all commands atomically
                 await pipe.execute()
 
@@ -137,7 +148,7 @@ class StatsQueue:
             raw_daily_stats = await self.redis.hgetall(f"url:stats:{short_code}:daily")
             
             # Calculate date range for last 7 days
-            today = datetime.now().date()
+            today = datetime.now(UTC).date()
             start_date = today - timedelta(days=6)  # 7 days including today
             
             # Generate daily clicks for the last 7 days
@@ -159,3 +170,28 @@ class StatsQueue:
                 "short_code": short_code,
                 "clicks": {}
             } 
+        
+    async def _cleanup_all_old_stats(self, expire_before: int = 7):
+        """Cleanup old statistics data."""
+        try:
+            keys = await self.redis.keys("url:stats:*:daily")
+            today = datetime.now(UTC).date()
+            expire_before = today - timedelta(days=expire_before)
+
+            for key in keys:
+                raw_daily_stats = await self.redis.hgetall(key)
+                if not raw_daily_stats:
+                    continue
+
+                key_to_delete = []
+                for date_str in raw_daily_stats:
+                    if datetime.strptime(date_str, "%Y%m%d").date() < expire_before:
+                        key_to_delete.append(date_str)
+                
+                if key_to_delete:
+                    await self.redis.hdel(key, *key_to_delete)
+                    logger.info(f"Delete old stats from {key}: {key_to_delete}")
+
+        except Exception as e:
+            logger.error(f"Error during cleanup_all_old_stats: {str(e)}")
+            raise

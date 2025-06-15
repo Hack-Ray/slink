@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional
@@ -12,7 +12,7 @@ class ShortUrlRepository:
 
     async def get_by_original_url(self, original_url: str) -> Optional[ShortUrl]:
         """Get an active short URL by its original URL."""
-        now = datetime.now()
+        now = datetime.now(UTC)
         query = select(ShortUrl).where(
             ShortUrl.original_url == original_url,
             ShortUrl.expires_at > now
@@ -22,7 +22,7 @@ class ShortUrlRepository:
 
     async def get_by_short_code(self, short_code: str) -> Optional[ShortUrl]:
         """Get an active short URL by its short code."""
-        now = datetime.now()
+        now = datetime.now(UTC)
         query = select(ShortUrl).where(
             ShortUrl.short_code == short_code,
             ShortUrl.expires_at > now
@@ -32,7 +32,7 @@ class ShortUrlRepository:
 
     async def create(self, original_url: str, short_code: str, expires_days: int = 30) -> ShortUrl:
         """Create a new short URL entry in the database."""
-        now = datetime.now()
+        now = datetime.now(UTC)
         short_url = ShortUrl(
             original_url=original_url,
             short_code=short_code,

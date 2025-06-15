@@ -1,5 +1,4 @@
 import os
-from typing import Generator
 
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession

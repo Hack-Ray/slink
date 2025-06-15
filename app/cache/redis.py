@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Optional, Protocol, AsyncGenerator
 
 import redis.asyncio as redis
@@ -57,7 +57,7 @@ class RedisCacheManager:
 
     async def increment_click_count(self, short_code: str):
         """Increments the click count for a given short URL and current day."""
-        today = datetime.now().strftime("%Y%m%d")
+        today = datetime.now(UTC).strftime("%Y%m%d")
         key = f"clicks:{short_code}:{today}"
         await self.redis.incr(key)
         await self.redis.expire(key, self.STATS_TTL)
@@ -66,11 +66,15 @@ class RedisCacheManager:
         """Retrieves click statistics for a short URL over a specified number of days."""
         stats_data = {}
         for i in reversed(range(days)):
-            date = (datetime.now() - timedelta(days=i)).strftime("%Y%m%d")
+            date = (datetime.now(UTC) - timedelta(days=i)).strftime("%Y%m%d")
             key = f"clicks:{short_code}:{date}"
             count = await self.redis.get(key)
             stats_data[date] = int(count) if count else 0
         return stats_data
+
+    async def get_tracked_short_codes(self) -> list[str]:
+        """Get all short codes currently being tracked."""
+        return await self.redis.keys("url:stats:*")
 
 
 # Default cache instance, adhering to the protocol

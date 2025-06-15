@@ -9,7 +9,7 @@ from app.db.repository import ShortUrlRepository
 from app.db.session import async_session, get_db
 from app.services.generators import HashBasedGenerator, ShortCodeGenerator
 from app.services.shortener import ShortenService
-from app.services.stats_queue import StatsQueue
+from app.core.stats_queue import StatsQueue
 from app.core.config import settings, Settings
 from app.controllers.url import URLController
 

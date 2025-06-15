@@ -7,7 +7,7 @@ from app.cache.redis import CacheManagerProtocol
 from app.core.config import Settings as default_settings, settings
 from app.services.generators import ShortCodeGenerator, HashBasedGenerator
 from app.services.url_validator import URLValidator
-from app.services.stats_queue import StatsQueue
+from app.core.stats_queue import StatsQueue
 
 
 class ShortenService:

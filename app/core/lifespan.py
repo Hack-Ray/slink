@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.core.di import get_redis
-from app.services.stats_queue import StatsQueue
+from app.core.stats_queue import StatsQueue
 from app.db.session import Base, engine
 from app.core.config import settings
 
