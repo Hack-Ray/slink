@@ -1,4 +1,4 @@
-from typing import Callable, Optional, AsyncGenerator
+from typing import Callable, AsyncGenerator
 
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
